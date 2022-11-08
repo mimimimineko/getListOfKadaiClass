@@ -57,6 +57,15 @@ searchBtnElement = browser.find_element(By.NAME,"ctl00$phContents$btnSearch")
 searchBtnElement.click()
 
 html = browser.page_source
-print(html)
+# print(html)
+soup = BeautifulSoup( html, 'html.parser')
+soup = soup.find("table")
+
+# print (soup)
+for tableLine in soup.find_all("tr"):
+    # print(tableLine)
+    for tableCell in tableLine.find("td"):
+        print(tableCell.text)
+
 # ブラウザを終了
 browser.quit()
