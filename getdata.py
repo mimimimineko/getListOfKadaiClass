@@ -57,15 +57,22 @@ searchBtnElement = browser.find_element(By.NAME,"ctl00$phContents$btnSearch")
 searchBtnElement.click()
 
 html = browser.page_source
-# print(html)
-soup = BeautifulSoup( html, 'html.parser')
-soup = soup.find("table")
 
-# print (soup)
+soup = BeautifulSoup( html, 'html.parser')
+#  時間割データがあるtableを抜き取り
+# soup = soup.find(By.ID,"ctl00_phContents_ucGrid_grv")
+soup = soup.find("table")
+# table = soup[0]
+
+# 各行ごと
+f = open("test.csv", "w")
+
 for tableLine in soup.find_all("tr"):
     # print(tableLine)
-    for tableCell in tableLine.find("td"):
-        print(tableCell.text)
+    for tableCell in tableLine.find_all("td"):
+        print("%s, "% tableCell.text,file=f)
+    # print ("\n" ,file=f)
 
+f.close()
 # ブラウザを終了
 browser.quit()
