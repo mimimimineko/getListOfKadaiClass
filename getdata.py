@@ -56,6 +56,18 @@ searchBtnElement = browser.find_element(By.NAME,"ctl00$phContents$btnSearch")
 # クリック
 searchBtnElement.click()
 
+
+# 開講学部の要素を見つける
+browser.implicitly_wait(3)
+displayNumElement = browser.find_element(By.NAME,"ctl00$phContents$ucGrid$ddlLines")
+# 要素を選択
+displayNumSelect = Select(displayNumElement)
+# 値を入力
+displayNumSelect.select_by_value("100")
+browser.implicitly_wait(3)
+
+
+
 html = browser.page_source
 
 soup = BeautifulSoup( html, 'html.parser')
@@ -67,11 +79,23 @@ soup = soup.find("table")
 # 各行ごと
 f = open("test.csv", "w")
 
+num = "1" #行数カウント
+
+# 1行分
 for tableLine in soup.find_all("tr"):
-    # print(tableLine)
+    # セル一つ分
+    m = 0 # 列カウント
+
     for tableCell in tableLine.find_all("td"):
-        print("%s, "% tableCell.text,file=f)
-    # print ("\n" ,file=f)
+        if m==0 and tableCell.text == str(num) :
+            print("%s, "% tableCell.text,file=f)
+            num = int(num) +1
+        elif m==0 :
+            break
+        else :
+            print("%s, "% tableCell.text,file=f)
+        m+=1
+    print ("" ,file=f)
 
 f.close()
 # ブラウザを終了
