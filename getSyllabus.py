@@ -36,7 +36,6 @@ browser = webdriver.Chrome(options=options)
 browser.implicitly_wait(3)
 # URLを読み込む
 browser.get(url)
-# htmlを取得
 
 # 年の要素を見つける
 yearElement = browser.find_element(By.NAME,"ctl00$phContents$ddl_year")
