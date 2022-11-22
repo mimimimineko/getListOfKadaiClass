@@ -1,6 +1,7 @@
 # 動的に授業データを表示するため不可能
 # import requests
 
+import time
 # コマンドライン引数を使用
 import sys
 
@@ -27,11 +28,11 @@ username = sys.argv[1]
 password = sys.argv[2]
 
 login = "https://kadai-moodle.kagawa-u.ac.jp/login/index.php"
-url = "https://kadai-moodle.kagawa-u.ac.jp/course/index.php"
+url = "https://kadai-moodle.kagawa-u.ac.jp/course/index.php?categoryid=185"
 
 # ブラウザーを起動
 options = Options()
-options.add_argument('--headless')
+# options.add_argument('--headless')
 browser = webdriver.Chrome(options=options)
 # 暗黙的な待機を最大3秒行う(サーバーの負担軽減)
 browser.implicitly_wait(3)
@@ -93,7 +94,7 @@ if expected_conditions.element_to_be_clickable(expandBtn):
         while text1 == text2:
             n+=1
             expandBtn.click()
-            browser.implicitly_wait(3)
+            time.sleep(1)      ## 少しあいだ開け無いと、HTMLがおかしくなる
             text2 = browser.find_element(By.ID,"region-main").text
             ## 1B 2B
             # expandBtn.send_keys(Keys.ENTER)
@@ -111,35 +112,37 @@ else:
     sys.exit()
 
 
+# カテゴリーのURLを含むaタグ削除
+# ついでに カテゴリー名取れる？
+for a in mainElem.find_elements(By.TAG_NAME,"a"):
+    removeHref = a.get_attribute("href")
+    if type(removeHref) is str:
+        print(a.text)
+        print("aa")
+    try:
+        if str(removeHref) in "categoryid":
+            print(a.text)
+            print("sakujosuru bun kaku")
+            print()
+    except:
+        print("削除失敗")
 
 
+# notloadedクラスを探し、その中のh4タグをクリックする
+notloadedClass = mainElem.find_elements(By.CLASS_NAME, "notloaded")
+browser.execute_script("""
+    var element = document.querySelector(".notloaded");
+    element.parentNode.removeChild(element);
+""")
+for notloaded in notloadedClass:
+    try:
+        notloadedh4 = notloaded.find_element(By.TAG_NAME,"h4")
+        notloadedh4.click()
+        time.sleep(0.5)
+    except:
+        print("ERROR")
 
 
-
-# どのように 階層構造で出力するか
-# 必要な情報
-##　コース名 コースID（URL）
-### 階層構造を崩さないように入手する必要がある
-
-# サイト構造
-# h3タグ トップレベルのボックスのみ(2022年度コンテンツと学生用掲示板)
-# h4タグ セカンドレベル以降のボックスすべて
-# coursenameクラス 各コースのdivタグにはすべてついている この中にaタグがありaタグのhrefがコースURL
-
-
-# h3,h4を片っ端からクリック(これ関数にしてもいいかも)
-# コースと分類ボックスの並列関係が分からん
-
-
-# print (browser.find_element(By.ID,"region-main").text)
-soup =BeautifulSoup(browser.page_source,"html.parser")
-souph3 = soup.find_all("h3",id="region-main")
-souph4 = soup.find_all("h4",id="region-main")
-for h3 in souph3:
-    print(h3)
-print()
-for h4 in souph4:
-    print (h4)
-
+time.sleep(60)
 # ブラウザを終了
 browser.quit()
