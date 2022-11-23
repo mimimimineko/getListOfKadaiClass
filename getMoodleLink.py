@@ -5,6 +5,12 @@ import time
 # コマンドライン引数を使用
 import sys
 
+# 木構造
+from anytree import Node, RenderTree
+
+# 多次元配列（リスト）用
+import numpy as np
+
 # JSによる動的表示対応
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,6 +22,42 @@ from selenium.webdriver.common.keys import Keys
 # import chromedriver_binary
 # データ抽出
 from bs4 import BeautifulSoup
+
+
+
+
+# カテゴリー数を返す
+def getList(mainElem,parent):
+    num = 0
+    h3elem = mainElem.find_elements(By.TAG_NAME,"h3")
+    # print("C",end=" ")
+    # print(len(h3elem))
+    if len(h3elem) != 0:
+        for h3 in h3elem:
+            h3 = h3.find_element(By.TAG_NAME,"a")
+            # 授業名、カテゴリー名
+            name = h3.text
+            # print("SET: "+name,end=",")
+            # URL
+            href =h3.get_attribute("href")
+            # print(href)
+            # 木構造リストに格納
+            i = 0
+            if "categoryid" not in href:
+                i =1
+                num +=1
+            exec("name = Node((name,href,i),parent=parent)")
+    else:
+        aelem = mainElem.find_elements(By.CLASS_NAME,"coursename")
+        for a in aelem:
+            a = a.find_element(By.TAG_NAME,"a")
+            name = a.text
+            # print("SET: "+name,end=",")
+            href = a.get_attribute("href")
+            # print(href)
+            exec("name = Node((name,href,1),parent=parent)")
+    return num
+
 
 if(len(sys.argv)!=3):
     print("ERROR : $ ファイル名 香大ID PW  のように入力し実行してください。")
@@ -29,6 +71,8 @@ password = sys.argv[2]
 
 login = "https://kadai-moodle.kagawa-u.ac.jp/login/index.php"
 url = "https://kadai-moodle.kagawa-u.ac.jp/course/index.php?categoryid=185"
+
+f = open("test2.csv", "w") # 保存先
 
 # ブラウザーを起動
 options = Options()
@@ -47,6 +91,7 @@ loginPasswordElem.clear()
 loginPasswordElem.send_keys(password)
 loginBtnElem = browser.find_element(By.ID,"loginbtn")
 loginBtnElem.click()
+browser.implicitly_wait(3)
 
 if(login == browser.current_url):
     print("ERROR : ログイン失敗 PW,IDが違います")
@@ -55,94 +100,132 @@ else:
     print("SUCCESS : 香川大学Moodleへのログイン")
 
 # コース一覧ページ表示
-browser.implicitly_wait(3)
 browser.get(url)
 browser.implicitly_wait(3)
 
 # Depth1
 
 # コース一覧要素を取得
-mainElem = browser.find_element(By.ID,"region-main")
+# (授業名、URL、カテゴリーだったら0 コースだったら1)
+urlList = Node(("root",url,0),parent=None)
+parent = urlList
 
-# 要素がクリックできない
-## コードが機能していないことを疑う
-## すべてを展開する をクリック
-### 1 クラスで指定
-### 2 文字列で指定
-### 3 JSで実行（クラスで指定し[0]を選択)
-### 4 リンクでアクセス
-### A クリック
-### B エンターキー送信
-#####すべてダメだった
-## ボタンを押す場所が悪い？
-### 繰り返しボタンを押してやり、成功したらやめる ８〜１０回で行ける
-#####いけた ボタンが押される場所はランダムっぽい
-### 繰り返しボタン押すの、ダサくない？非効率的じゃない？
-### locationで要素の左上隅からの座標を指定できる
+mainElem = browser.find_element(By.CLASS_NAME,"course_category_tree")
+# h3tags = mainElem.find_elements(By.TAG_NAME,"h3")
 
-# 1
-expandBtn = mainElem.find_element(By.CLASS_NAME,"collapseexpand")
-# 2
-# expandBtn = mainElem.find_element(By.LINK_TEXT,"すべてを展開する")
-if expected_conditions.element_to_be_clickable(expandBtn):
-    try:
-        ## 1A 2A
-        # text1 = BeautifulSoup(browser.page_source,"html.parser").find(id="region-main")
-        text1 = browser.find_element(By.ID,"region-main").text
-        text2 = text1
-        n = 0
-        while text1 == text2:
-            n+=1
-            expandBtn.click()
-            time.sleep(1)      ## 少しあいだ開け無いと、HTMLがおかしくなる
-            text2 = browser.find_element(By.ID,"region-main").text
-            ## 1B 2B
-            # expandBtn.send_keys(Keys.ENTER)
-            ## 3A
-            # browser.execute_script("document.getElementsByClassName('collapseexpand')[0].click();")
-            ## 4
-            # browser.get(expandBtn.get_attribute("href"))
-        else:
-            print ("SUCCESS : コース一覧で展開ボタンを押す 試行回数%d"% n)
-    except:
-        print ('ERROR : cannot click "すべてを展開する"')
-        sys.exit()
-else:
-    print('ERROR : cannot click "すべてを展開する" ボタンではありません')
-    sys.exit()
+getList(mainElem,parent)
 
+for a in RenderTree(parent).node.children:
+    if "category" in a.name[1]:
+        categoryUrl=a.name[1]+"&perpage=200"
+        print("GET: "+a.name[0])
+        browser.get(categoryUrl)
+        browser.implicitly_wait(3)
+        parent = a
+        try:
+            mainElem = browser.find_element(By.CLASS_NAME,"course_category_tree")
+            h3tags = mainElem.find_elements(By.TAG_NAME,"h3")
+            getList(mainElem,parent)
 
-# カテゴリーのURLを含むaタグ削除
-# ついでに カテゴリー名取れる？
-for a in mainElem.find_elements(By.TAG_NAME,"a"):
-    removeHref = a.get_attribute("href")
-    if type(removeHref) is str:
-        print(a.text)
-        print("aa")
-    try:
-        if str(removeHref) in "categoryid":
-            print(a.text)
-            print("sakujosuru bun kaku")
-            print()
-    except:
-        print("削除失敗")
+            for a in RenderTree(parent).node.children:
+                if "category" in a.name[1]:
+                    categoryUrl=a.name[1]+"&perpage=200"
+                    # print("  GET: "+a.name[0])
+                    browser.get(categoryUrl)
+                    browser.implicitly_wait(3)
+                    parent = a
+                    try:
+                        mainElem = browser.find_element(By.CLASS_NAME,"course_category_tree")
+                        h3tags = mainElem.find_elements(By.TAG_NAME,"h3")
+
+                        getList(mainElem,parent)
+
+                        for a in RenderTree(parent).node.children:
+                            if "category" in a.name[1]:
+                                categoryUrl=a.name[1]+"&perpage=200"
+                                # print("    GET: "+a.name[0])
+                                browser.get(categoryUrl)
+                                browser.implicitly_wait(3)
+                                parent = a
+                                try:
+                                    mainElem = browser.find_element(By.CLASS_NAME,"course_category_tree")
+                                    h3tags = mainElem.find_elements(By.TAG_NAME,"h3")
+                                    getList(mainElem,parent)
+                                except:
+                                    continue
+                    except:
+                        continue
+        except:
+            continue
+
+for pre, fill, node in RenderTree(urlList):
+    print("%s%s%s" % (pre, node.name,node.depth))
+    print("%s%s" % (node.depth,node.name),file=f)
 
 
-# notloadedクラスを探し、その中のh4タグをクリックする
-notloadedClass = mainElem.find_elements(By.CLASS_NAME, "notloaded")
-browser.execute_script("""
-    var element = document.querySelector(".notloaded");
-    element.parentNode.removeChild(element);
-""")
-for notloaded in notloadedClass:
-    try:
-        notloadedh4 = notloaded.find_element(By.TAG_NAME,"h4")
-        notloadedh4.click()
-        time.sleep(0.5)
-    except:
-        print("ERROR")
 
 
-time.sleep(60)
+
+
+
+# 「すべてを展開する」をクリック
+# expandBtn = mainElem.find_element(By.CLASS_NAME,"collapseexpand")
+# if expected_conditions.element_to_be_clickable(expandBtn):
+#     try:
+#         text1 = browser.find_element(By.CLASS_NAME,"course_category_tree").text
+#         text2 = text1
+#         n = 0
+#         while text1 == text2:
+#             n+=1
+#             expandBtn.click()
+#             time.sleep(1)      ## 少しあいだ開け無いと、HTMLがおかしくなる
+#             text2 = browser.find_element(By.ID,"region-main").text
+#             ## 1B 2B
+#             # expandBtn.send_keys(Keys.ENTER)
+#             ## 3A
+#             # browser.execute_script("document.getElementsByClassName('collapseexpand')[0].click();")
+#             ## 4
+#             # browser.get(expandBtn.get_attribute("href"))
+#         else:
+#             print ("SUCCESS : コース一覧で展開ボタンを押す 試行回数%d"% n)
+#     except:
+#         print ('ERROR : cannot click "すべてを展開する"')
+#         sys.exit()
+# else:
+#     print('ERROR : cannot click "すべてを展開する" ボタンではありません')
+#     sys.exit()
+
+
+
+
+
+
+
+# for a in mainElem.find_elements(By.TAG_NAME,"a"):
+#     removeHref = a.get_attribute("href")
+#     print(removeHref)
+#     if type(removeHref) is str:
+#         try:
+#             if "categoryid" in str(removeHref):
+#                 print(a.text)
+#                 print("sakujosuru bun kaku")
+#                 print()
+#         except:
+#             print("削除失敗")
+# time.sleep(60)
+
+# # notloadedクラスを探し、その中のh4タグをクリックする
+# notloadedClass = mainElem.find_elements(By.CLASS_NAME, "notloaded")
+
+# for notloaded in notloadedClass:
+#     try:
+#         notloadedh4 = notloaded.find_element(By.TAG_NAME,"h4")
+#         notloadedh4.click()
+#         time.sleep(0.5)
+#     except:
+#         print("ERROR")
+
+
+# time.sleep(6000)
 # ブラウザを終了
 browser.quit()
