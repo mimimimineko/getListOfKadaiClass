@@ -160,7 +160,7 @@ for a in RenderTree(parent).node.children:
 
 for pre, fill, node in RenderTree(urlList):
     print("%s%s%s" % (pre, node.name,node.depth))
-    print("%s%s" % (node.depth,node.name),file=f)
+    print('"%s","%s","%s","%s"' % (node.depth,node.name[0],node.name[1],node.name[2]),file=f)
 
 
 

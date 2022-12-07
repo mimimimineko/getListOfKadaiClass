@@ -88,7 +88,7 @@ for tableLine in soup.find_all("tr"):
         # 授業内容を取る
         if m == 0:  # 検索結果 1列目
             if tableCell.text == str(num) : # 1列目のセルと記録する行番号が同じ時
-                print("%s, "% tableCell.text,file=f,end="")
+                print('"%s, "'% tableCell.text,file=f,end="")
                 fileok = 1 # この行はファイル書き込みしてOK
                 num = int(num) +1
                 m+=1
