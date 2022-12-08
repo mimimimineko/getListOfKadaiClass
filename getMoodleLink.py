@@ -72,7 +72,7 @@ password = sys.argv[2]
 login = "https://kadai-moodle.kagawa-u.ac.jp/login/index.php"
 url = "https://kadai-moodle.kagawa-u.ac.jp/course/index.php?categoryid=185"
 
-f = open("test2.csv", "w") # 保存先
+f = open("moodle.csv", "w",encoding="cp932") # 保存先
 
 # ブラウザーを起動
 options = Options()
